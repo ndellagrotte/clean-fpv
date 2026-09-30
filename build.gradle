@@ -2,13 +2,16 @@ plugins {
     id 'java'
     id 'java-library'
     id 'maven-publish'
-    id 'com.gradleup.shadow' version '9.6.1'
     id 'org.jetbrains.gradle.plugin.idea-ext' version '1.4.1'
-    id 'xyz.wagyourtail.unimined' version '1.4.43-kappa'
+    id 'com.cleanroommc.cleanroomgradle'
     id 'net.kyori.blossom' version '2.2.0'
 }
 
+import com.cleanroommc.gradle.api.task.mc.RunMinecraft
 import org.jetbrains.gradle.ext.Gradle
+
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 
 ext {
     //noinspection GroovyAssignabilityCheck
@@ -37,57 +40,28 @@ java {
 configurations {
     contain
     implementation.extendsFrom(contain)
-    modCompileOnly
-    compileOnly.extendsFrom(modCompileOnly)
-    modRuntimeOnly
-    runtimeOnly.extendsFrom(modRuntimeOnly)
 }
 
-def remapTaskName = enable_shadow.toBoolean() ? "remapShadowJar" : "remapJar"
+// Same exclusions as Cleanroom's own build; the published userdev metadata does not carry them to consumers.
+configurations.configureEach {
+    exclude group: 'com.ibm.icu', module: 'icu4j-core-mojang'
+    // patchy ships its own io.netty.bootstrap.Bootstrap, which shadows Netty 4.2's and crashes on world load
+    exclude group: 'com.mojang', module: 'patchy'
+}
 
-//noinspection GroovyAssignabilityCheck
-unimined.minecraft {
-    version "1.12.2"
-
-    mappings {
-        mcp("stable", "39-1.12")
-    }
-
-    cleanroom {
-        if (use_access_transformer.toBoolean()) {
-            accessTransformer "${rootProject.projectDir}/src/main/resources/$access_transformer_locations"
-        }
-        loader "0.6.13-alpha"
-        runs.all {
-            args += ['--username', minecraft_username]
-            def extraArgs = extra_jvm_args
-            if (extraArgs != null && !extraArgs.trim().isEmpty()) {
-                jvmArgs += extraArgs.split { "\\s+" }.toList()
-            }
-            if (enable_foundation_debug.toBoolean()) {
-                systemProperty("foundation.dump", "true")
-                systemProperty("foundation.verbose", "true")
-            }
-            if (is_coremod.toBoolean()) {
-                systemProperty("fml.coreMods.load", coremod_plugin_class_name)
-            }
-            return
-        }
-    }
-
-    defaultRemapJar = false
-
-    String jarTaskName = enable_shadow.toBoolean() ? "shadowJar" : "jar"
-
-    remap(tasks.named(jarTaskName).get())
-
-    mods {
-        remap(configurations.modCompileOnly)
-        remap(configurations.modRuntimeOnly)
-    }
+configurations.named('runtimeClasspath') {
+    // LWJGL 2 is replaced by LWJGLY at runtime
+    exclude group: 'org.lwjgl.lwjgl'
 }
 
 dependencies {
+    // Registering the userdev dependency switches CleanroomGradle into userdev mode: Minecraft and the loader
+    // are provided under MCP names, and runClient, runServer and reobfJar become available.
+    implementation cleanroom.userdev(cleanroom_version) {
+        if (use_access_transformer.toBoolean()) {
+            accessTransformers.from("src/main/resources/${access_transformer_locations}")
+        }
+    }
     if (use_asset_mover.toBoolean()) {
         implementation "com.cleanroommc:assetmover:${asset_mover_version}"
     }
@@ -98,6 +72,53 @@ dependencies {
 }
 
 apply from: 'gradle/scripts/dependencies.gradle'
+
+cleanroom {
+    runs {
+        // Second client for testing multiplayer (e.g. roll sync over Open to LAN) next to runClient
+        client2 {
+            inherit = 'client'
+            configure {
+                username = 'Player2'
+                workingDir = file('run/client2')
+            }
+        }
+    }
+}
+
+tasks.withType(RunMinecraft).configureEach {
+    username.convention(minecraft_username)
+    // Dev runs have no Mojang account; without this runServer asks on stdin
+    offline = true
+
+    // Foundation's game classloader only loads a fixed set of packages itself (net.minecraft, com.cleanroommc., ...)
+    // and hands everything else to the system classloader first. With the mod's classes on the JVM classpath, the
+    // system loader would define them against its own copy of Forge (@SidedProxy then reads back as null). So the
+    // run loads the mod like a player's install: the dev jar goes into <workingDir>/mods and the raw output is
+    // taken off the JVM classpath.
+    FileCollection mainOutput = sourceSets.main.output
+    Provider<RegularFile> devJar = tasks.named('jar', Jar).flatMap { it.archiveFile }
+    String devJarName = "${mod_id}-dev.jar"
+    dependsOn(tasks.named('jar'))
+    doFirst {
+        Set<File> outputFiles = mainOutput.files
+        classpath = classpath.filter { !outputFiles.contains(it) }
+        File modsDir = new File(workingDir, 'mods')
+        modsDir.mkdirs()
+        Files.copy(devJar.get().asFile.toPath(), new File(modsDir, devJarName).toPath(), StandardCopyOption.REPLACE_EXISTING)
+    }
+    def extraArgs = extra_jvm_args
+    if (extraArgs != null && !extraArgs.trim().isEmpty()) {
+        jvmArgs(extraArgs.trim().split(/\s+/).toList())
+    }
+    if (enable_foundation_debug.toBoolean()) {
+        systemProperty("foundation.dump", "true")
+        systemProperty("foundation.verbose", "true")
+    }
+    if (is_coremod.toBoolean()) {
+        systemProperty("fml.coreMods.load", coremod_plugin_class_name)
+    }
+}
 
 processResources {
     rename '(.+_at.cfg)', 'META-INF/$1'
@@ -110,7 +131,7 @@ sourceSets {
                 property('mod_id', mod_id)
                 property('mod_name', mod_name)
                 property('mod_version', mod_version)
-                property('package', "${root_package}.${mod_id}")
+                property('package', java_package)
             }
             resources {
                 property('mod_id', mod_id)
@@ -153,57 +174,45 @@ idea {
                     ]
                 }
             }
-            taskTriggers {
-                beforeSync tasks.named("genSources")
-            }
         }
     }
-}
-
-if (!enable_shadow.toBoolean()) {
-    shadowJar.enabled = false
 }
 
 compileJava {
     sourceCompatibility = targetCompatibility = JavaVersion.VERSION_25
 }
 
+// The jar keeps MCP names (dev jar); reobfJar renames it to SRG names for players.
 jar {
     archiveClassifier = 'dev'
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    if (configurations.contain.size() > 0) {
-        into('/') {
-            from configurations.contain
+    FileCollection contained = configurations.contain
+    into('/') {
+        from contained
+    }
+    def attribute_map = [:]
+    attribute_map['ModType'] = "CRL"
+    if (is_coremod.toBoolean()) {
+        attribute_map['FMLCorePlugin'] = coremod_plugin_class_name
+        if (coremod_includes_mod.toBoolean()) {
+            attribute_map['FMLCorePluginContainsFMLMod'] = true
         }
     }
+    if (use_access_transformer.toBoolean()) {
+        attribute_map['FMLAT'] = access_transformer_locations
+    }
+    manifest.attributes(attribute_map)
+    // contain is resolved only when the jar is built; resolving it while configuring is rejected
     doFirst {
-        manifest {
-            def attribute_map = [:]
-            attribute_map['ModType'] = "CRL"
-            if (configurations.contain.size() > 0) {
-                attribute_map['ContainedDeps'] = configurations.contain.collect { it.name }.join(' ')
-                attribute_map['NonModDeps'] = true
-            }
-            if (is_coremod.toBoolean()) {
-                attribute_map['FMLCorePlugin'] = coremod_plugin_class_name
-                if (coremod_includes_mod.toBoolean()) {
-                    attribute_map['FMLCorePluginContainsFMLMod'] = true
-                }
-            }
-            if (use_access_transformer.toBoolean()) {
-                attribute_map['FMLAT'] = access_transformer_locations
-            }
-            attributes(attribute_map)
+        if (!contained.isEmpty()) {
+            manifest.attributes(['ContainedDeps': contained.collect { it.name }.join(' '), 'NonModDeps': true])
         }
     }
-    finalizedBy(tasks.named(remapTaskName).get())
+    finalizedBy(tasks.named('reobfJar'))
 }
 
-
-shadowJar {
-    //noinspection GroovyAssignabilityCheck,GroovyAccessibility
-    configurations = [project.configurations.shadow]
-    archiveClassifier = "shadow"
+tasks.named('assemble') {
+    dependsOn(tasks.named('reobfJar'))
 }
 
 compileTestJava {

@@ -25,3 +25,8 @@ gradle-app.setting
 # IDEA config
 .idea
 
+/.mcp.json
+
+# Test/tool log output
+/logs/
+/2026-09-29-203822-local-command-caveatcaveat-the-messages-below.txt

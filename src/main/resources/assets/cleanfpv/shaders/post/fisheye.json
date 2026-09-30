@@ -1,0 +1,15 @@
+{
+    "targets": [ "swap" ],
+    "passes": [
+        {
+            "name": "cleanfpv:fisheye",
+            "intarget": "minecraft:main",
+            "outtarget": "swap"
+        },
+        {
+            "name": "cleanfpv:copy",
+            "intarget": "swap",
+            "outtarget": "minecraft:main"
+        }
+    ]
+}
