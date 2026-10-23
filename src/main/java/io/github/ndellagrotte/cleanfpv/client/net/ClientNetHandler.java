@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2026 ndellagrotte
+ * SPDX-License-Identifier: LGPL-3.0-only
+ */
+
 package io.github.ndellagrotte.cleanfpv.client.net;
 
 import io.github.ndellagrotte.cleanfpv.client.ClientDroneContext;
@@ -224,7 +229,7 @@ public final class ClientNetHandler implements ClientPacketHandler {
         }
     }
 
-    /** Disarm of one remote pilot: registry, view, entity size and roll. */
+    /** Disarm of one remote pilot: registry, view and entity size. */
     private void dropRemote(UUID id) {
         ArmRegistry.CLIENT.remove(id);
         remoteDrones.remove(id);
@@ -232,8 +237,6 @@ public final class ClientNetHandler implements ClientPacketHandler {
         EntityPlayer entity = world != null ? world.getPlayerEntityByUUID(id) : null;
         if (entity != null && !(entity instanceof EntityPlayerSP)) {
             PlayerSizing.restore(entity);
-            entity.roll = 0f;
-            entity.prevRoll = 0f;
         }
     }
 

@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2026 ndellagrotte
+ * SPDX-License-Identifier: LGPL-3.0-only
+ */
+
 package io.github.ndellagrotte.cleanfpv.client.gui;
 
 import io.github.ndellagrotte.cleanfpv.client.gui.screen.SettingsHomeScreen;

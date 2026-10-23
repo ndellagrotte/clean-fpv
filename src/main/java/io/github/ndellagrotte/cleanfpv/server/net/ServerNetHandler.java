@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2026 ndellagrotte
+ * SPDX-License-Identifier: LGPL-3.0-only
+ */
+
 package io.github.ndellagrotte.cleanfpv.server.net;
 
 import io.github.ndellagrotte.cleanfpv.CleanFpv;
@@ -154,7 +159,6 @@ public final class ServerNetHandler implements ServerPacketHandler {
         TransformSnapshot t = relay.pendingTransform;
         relay.pendingTransform = null;
         if (t != null && build != null) {
-            pilot.setRoll(TransformRules.cameraRollDeg(t.qx, t.qy, t.qz, t.qw, build.cameraAngle));
             Channel.sendToAllTracking(new TransformS2C(id, t), pilot);
         }
         long now = System.currentTimeMillis();

@@ -1,9 +1,14 @@
+/*
+ * Copyright (c) 2026 ndellagrotte
+ * SPDX-License-Identifier: LGPL-3.0-only
+ */
+
 package io.github.ndellagrotte.cleanfpv.client.input;
 
 import io.github.ndellagrotte.cleanfpv.common.config.DroneModelConfig;
 
 /**
- * Converts {@code InputEvent.MouseTurnEvent} values into this frame's roll/pitch displacement
+ * Converts {@code MouseTurnEvent} values into this frame's roll/pitch displacement
  * (spec §3.2/§4.3, PLAN §6.1). Pure; the event subscription belongs to orchestration (F), which
  * calls these from its {@code MouseTurnEvent} handler, adds the result <em>directly</em> to that
  * frame's roll/pitch rotation angles (a displacement, not a rate: not multiplied by dt, unbounded)

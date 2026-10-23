@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2026 ndellagrotte
+ * SPDX-License-Identifier: LGPL-3.0-only
+ */
+
 package io.github.ndellagrotte.cleanfpv.client.flight;
 
 import io.github.ndellagrotte.cleanfpv.CleanFpv;
@@ -139,8 +144,6 @@ public final class ArmController {
         player.motionY = 0.0;
         player.motionZ = 0.0;
         player.fallDistance = 0f;
-        player.setRoll(0f);
-        player.prevRoll = 0f;
         MotorSounds.startLocal();
         CameraOutput.applyLocal(player);
 
@@ -210,8 +213,6 @@ public final class ArmController {
                 player.motionY = ArmRules.handOverMotion(state.velocity.y);
                 player.motionZ = ArmRules.handOverMotion(state.velocity.z);
             }
-            player.setRoll(0f);
-            player.prevRoll = 0f;
             player.fallDistance = 0f; // matches DroneServer.restore
         }
         Fisheye.disable();

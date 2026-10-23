@@ -1,81 +1,54 @@
-# CleanroomModTemplate
-Mod development template for Cleanroom, uses a custom [Unimined fork](https://github.com/kappa-maintainer/Unimined) ([original](https://github.com/unimined/Unimined))
+# Clean FPV
 
-### WARNING: Custom Unimined Fork
-May have issues, report here or [here](https://github.com/kappa-maintainer/Unimined) when you encountered impossible field names or impossible Scala compiler errors. 
+A clean-room FPV quadcopter simulator for Minecraft 1.12.2 on [Cleanroom](https://github.com/CleanroomMC/Cleanroom).
+Arm a drone, fly it with a joystick (SDL3 through Cleanroom's `com.cleanroommc.client.sdl` API), a gamepad, or keyboard and mouse,
+with rate curves, body-axis attitude, a fisheye FPV camera, motor sound, a settings UI with presets, and server-authoritative
+racing. The design is written up in `PLAN_v2.md`; `PLAN_v1.md` and `PLAN_v1_REVIEW_1.md` are the history behind it.
 
-## DOs and DON'Ts
-### Choose Branch
-Choose mixin branch if you want to use Mixin.
+## Requirements
 
-Use scala and kotlin branch if you want to use those languages. 
+- Cleanroom 0.7.12-alpha or newer (`MouseTurnEvent`, the SDL joystick API and the joystick hotplug fix all ship there).
+- JDK 25 to build.
 
-There are 4 branches available:
-- main
-- mixin
-- scala
-- kotlin
+## Building
 
-If you want to use non-main branches, after clicked *Create a new repository* under *Use this template*, check the *Include all branches* checkbox.
+The build uses [CleanroomGradle](https://github.com/CleanroomMC/CleanroomGradle) and
+[Conventions](https://github.com/CleanroomMC/Conventions), following the
+[CleanroomModTemplate](https://github.com/CleanroomMC/CleanroomModTemplate).
 
-### Running Client or Server
-If you are using IntelliJ, **DO NOT** use the `Minecraft Client` configure with a blue icon. Just use the `2. Run Client` Gradle task.
+```
+./gradlew build          # jars in build/libs: cleanfpv-<version>.jar (players), cleanfpv-<version>-mcp.jar (dev names)
+./gradlew runClient      # dev client, username from minecraft_username
+./gradlew runClient2     # second dev client (Player2, run/client2) for LAN / multiplayer testing
+./gradlew runServer
+./gradlew -q printVersion
+```
 
-### Adding Mod Dependencies
-You can find dependencies block in `gradle/scripts/dependencies.gradle`.
+Every build option is documented next to its property in `gradle.properties`.
 
-No more `rfg.deobf()` or `fg.deobf`. You **MUST** add mods by using `modImplementation` or `modRuntimeOnly`, or the game will crash when running.
+### Versioning
 
-Use `modLibrary` for libs/mods that you don't want to remap.
+The version is computed from git tags. Tag `1.0.0` on `main` to release it; `./gradlew -q printVersion` prints the current value.
+Untagged builds get a `-dev.N` counter.
 
-### Non-Mod Dependencies
-Two new configuration types `contain` and `shadow` are available, check more details in `dependencies.gradle`.
+### Tokens
 
-### gradle.properties
-Edit gradle.properties and set your modid, mod version, mod name, package, etc.
+`@{NAME}` markers in classes and resources (`Reference.java`, `mcmod.info`, `pack.mcmeta`) are replaced at build time by
+Token Envoy. `tokens.properties` declares them; `MOD_VERSION` and `MOD_AUTHORS` are computed in `build.gradle`.
 
-If you are writing a coremod, remember to set related settings to true.
+### Access transformers
 
-### Reference Class
-There will be a `Reference` class under your top package.
+`src/main/resources/META-INF/cleanfpv_at.cfg` opens `Entity.setSize`, `Entity.isInWeb` and `ShaderGroup.listShaders`.
+CleanroomGradle applies the file to the SRG-named jar before renaming to MCP names, so entries use **SRG names**
+(`func_70105_a`, `field_148031_d`); MCP-named entries match nothing.
 
-This is used to store mod version so you can fill it to `@Mod` annotation.
+### Code style
 
-You should change its location to fit your new package name.
+FormatJ, ClearSkies and Checkstyle come from Conventions and are off by default (`enable_formatting`, `enable_checkstyle`).
+`./gradlew clearSkiesApply formatJavaApply` reformats; `./gradlew extractConventions applyLicenseHeader` refreshes the
+convention-managed files (`LICENSE`, `HEADER`, `checkstyle.xml`, `formatj.toml`, `cliff.toml`, `.editorconfig`,
+`.gitattributes`, the managed region of `.gitignore`) and the license header on sources.
 
-You can find its template under `src/main/java-templates`.
+## License
 
-### Mixin
-1. Rename json config file to use your modid. 
-2. Add **all** your mixin classes there.
-3. Use `IMixinConfigPlugin` to control if certain mixin should be enabled.
-4. mixin classes will be passed to the plugin only when target class is loading, so you don't need to call `Loader.isModLoaded()`
-5. Don't worry about refmap, Unimined will handle it automatically. You can still `disableRefmap()` manually though
-
-### Access Transformer
-You **MUST** write AT file in MCP name. It will be remapped back to SRG name in artifact jar.
-
-Rename AT file name to your modid before using it. There's an example entry in AT file, remove it if you want to use AT.
-
-### Vanilla Source Code with Comments
-Run `genSources` task in gradle. If it didn't work, run again until a file with `-sources.jar` suffix appeared.
-
-If you want to `find usage` from vanilla like RFG, just change the scope in IntelliJ settings.
-
-### GitHub Action
-This template comes with three workflows.
-
-`build.yml` will build and upload artifact for every commit. Useful when you want to provide test builds for debugging.
-
-`release.yml` will make a GitHub release if you pushed a git tag.
-
-`release-to-cf-mr.yml` can publish your mod to CurseForge and/or Modrinth.
-
-You need to fill in your project IDs and configure your tokens in GitHub repository first.
-
-By default, you will need to manually trigger the workflow in web page, but you can also enable tag triggering by merging the third yml into `release.yml`.
-
-### Credit
-Thanks @Karnatour for fixing shadow plugin
-
-Thanks @ghostflyby for making kotlin branch
+LGPL-3.0-only, see `LICENSE`.

@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2026 ndellagrotte
+ * SPDX-License-Identifier: LGPL-3.0-only
+ */
+
 package io.github.ndellagrotte.cleanfpv.server;
 
 import io.github.ndellagrotte.cleanfpv.common.ArmRegistry;
@@ -54,7 +59,6 @@ public final class DroneServer {
         player.getEntityData().setBoolean(FLYING_AT_ARM_TAG, player.capabilities.isFlying);
         grantFlight(player);
         PlayerSizing.shrink(player);
-        player.setRoll(0f);
         player.fallDistance = 0f;
         Channel.sendToAllTracking(new ArmS2C(player.getUniqueID(), true), player);
         ArmedState state = ArmRegistry.SERVER.get(player.getUniqueID());
@@ -211,7 +215,6 @@ public final class DroneServer {
             player.sendPlayerAbilities();
         }
         PlayerSizing.restore(player);
-        player.setRoll(0f);
         player.fallDistance = 0f;
     }
 

@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2026 ndellagrotte
+ * SPDX-License-Identifier: LGPL-3.0-only
+ */
+
 package io.github.ndellagrotte.cleanfpv.client.net;
 
 import io.github.ndellagrotte.cleanfpv.client.render.RemoteDroneSource;
@@ -45,14 +50,11 @@ import java.util.UUID;
  * entity-less entries stay stored (a later packet revives them) until removed by disarm, entity
  * removal (api-notes D6: {@code IWorldEventListener.onEntityRemoved}), world unload or disconnect.
  *
- * <h2>Entity roll</h2>
- * Each frame the visible pilot's entity gets {@code roll = prevRoll =} the camera roll of the
- * smoothed attitude at the build's camera angle ({@link TransformRules#cameraRollDeg}, the
- * {@code CameraSetup} convention). The server also sets the pilot's roll from the same formula
- * and the loader syncs it ({@code Entity.ROLL}); {@code tickRoll()} applies that value during the
- * client tick, and this frame write replaces it before anything renders (ticks run before
- * {@code RenderTickEvent} START, api-notes D2). Both are derived identically, so the only
- * difference is smoothing, and writing {@code prevRoll} too keeps {@code getRoll(pt)} constant.
+ * <h2>Roll</h2>
+ * Entities carry no roll axis (Cleanroom 0.7.x). A remote pilot's roll is only visible through the
+ * drone model, which {@code DroneRenderer} draws from the smoothed attitude quaternion in place of
+ * the player model, and through {@code CameraSetup} when spectating that pilot
+ * ({@link TransformRules#cameraRollDeg}).
  *
  * <h2>Renderer cache invalidation</h2>
  * Every received build is a new {@link DroneBuild} object: a renderer cache can compare
@@ -204,12 +206,6 @@ public final class RemoteDrones implements RemoteDroneSource {
             }
             if (entity != null) {
                 lastPosition.set(entity.posX, entity.posY, entity.posZ);
-                if (visible) {
-                    float roll = TransformRules.cameraRollDeg(smoothed.x, smoothed.y, smoothed.z, smoothed.w,
-                            cameraTiltDeg());
-                    entity.roll = roll;
-                    entity.prevRoll = roll;
-                }
             }
         }
 

@@ -1,13 +1,17 @@
+/*
+ * Copyright (c) 2026 ndellagrotte
+ * SPDX-License-Identifier: LGPL-3.0-only
+ */
+
 package io.github.ndellagrotte.cleanfpv.client.flight;
 
 import io.github.ndellagrotte.cleanfpv.client.ClientDroneContext;
 import io.github.ndellagrotte.cleanfpv.client.input.InputManager;
 import io.github.ndellagrotte.cleanfpv.client.physics.PhysicsEngine;
+import com.cleanroommc.client.input.mouse.MouseTurnEvent;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
-import net.minecraftforge.client.ForgeHooksClient;
 import net.minecraftforge.client.event.GuiScreenEvent;
-import net.minecraftforge.client.event.InputEvent;
 import net.minecraftforge.event.entity.EntityJoinWorldEvent;
 import net.minecraftforge.event.world.WorldEvent;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
@@ -88,7 +92,7 @@ public final class FlightEvents {
         arm.handleIntent(InputManager.get().arm().pollArmIntent(ctx.isArmed()));
 
         if (ctx.isArmed()) {
-            loop.realtimeStep(mc.player, ForgeHooksClient.getFrameDeltaSeconds());
+            loop.realtimeStep(mc.player, mc.getFrameDeltaSeconds());
             ctx.setCameraOverride(true);
         } else {
             CameraOutput.applySpectator(mc);
@@ -103,7 +107,7 @@ public final class FlightEvents {
     }
 
     @SubscribeEvent
-    public void onMouseTurn(InputEvent.MouseTurnEvent event) {
+    public void onMouseTurn(MouseTurnEvent event) {
         ClientDroneContext ctx = ClientDroneContext.get();
         EntityPlayerSP player = event.getPlayer();
         if (!ctx.isArmed() || player == null || player != arm.armedPlayer()) {
@@ -118,7 +122,8 @@ public final class FlightEvents {
         if (event.phase != TickEvent.Phase.END || !ClientDroneContext.get().isArmed()) {
             return;
         }
-        loop.attitudeStep(Minecraft.getMinecraft().player, ForgeHooksClient.getFrameDeltaSeconds(), 0f, 0f);
+        Minecraft mc = Minecraft.getMinecraft();
+        loop.attitudeStep(mc.player, mc.getFrameDeltaSeconds(), 0f, 0f);
     }
 
     // =============================================================================================

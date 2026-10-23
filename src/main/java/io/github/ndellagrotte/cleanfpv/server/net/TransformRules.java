@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2026 ndellagrotte
+ * SPDX-License-Identifier: LGPL-3.0-only
+ */
+
 package io.github.ndellagrotte.cleanfpv.server.net;
 
 import io.github.ndellagrotte.cleanfpv.common.TransformSnapshot;
@@ -24,7 +29,7 @@ import io.github.ndellagrotte.cleanfpv.common.config.DroneBuild;
  * {@code orientCamera} applies {@code Rz(roll)} last, in eye space (x right, y up, looking −z), so a
  * positive roll turns the world counter-clockwise on screen, which is what a camera rolled to the
  * right sees. It is the same triple as {@code CameraPose} ({@code Rz(roll)·Rx(pitch)·Ry(yaw+180)}),
- * so the server-synced {@code Entity.ROLL} of an armed player matches the roll of that pilot's own
+ * so the roll shown to spectators of an armed player matches the roll of that pilot's own
  * view. When the camera looks straight up or down, yaw and roll are degenerate and roll is 0.
  */
 public final class TransformRules {

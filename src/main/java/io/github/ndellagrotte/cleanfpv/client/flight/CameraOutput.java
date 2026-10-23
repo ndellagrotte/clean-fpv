@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2026 ndellagrotte
+ * SPDX-License-Identifier: LGPL-3.0-only
+ */
+
 package io.github.ndellagrotte.cleanfpv.client.flight;
 
 import io.github.ndellagrotte.cleanfpv.client.ClientDroneContext;
@@ -57,10 +62,6 @@ final class CameraOutput {
         if (Float.isFinite(pose.pitchDeg())) {
             player.rotationPitch = pose.pitchDeg();
             player.prevRotationPitch = pose.pitchDeg();
-        }
-        if (Float.isFinite(pose.rollDeg())) {
-            player.roll = pose.rollDeg();
-            player.prevRoll = pose.rollDeg();
         }
         return tilt;
     }
